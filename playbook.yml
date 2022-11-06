@@ -1,0 +1,122 @@
+---
+- name: This is my main playbook
+  hosts: all
+  become: yes
+  roles:
+    - apache
+    - php
+    - composer
+    - git
+
+  tasks:
+    - name: Clone the laravel repository
+      git:
+        repo: https://github.com/f1amy/laravel-realworld-example-app.git
+        dest: /var/www/html/laravel-realworld-example-app
+        clone: yes
+        update: yes
+
+    - name: Move into the Laravel Repository
+      shell: cd /var/www/html/laravel-realworld-example-app
+
+    - name: Install Laravel
+      community.general.composer:
+        command: create-project
+        working_dir: /var/www/html/laravel-realworld-example-app
+      environment:
+        COMPOSER_ALLOW_SUPERUSER: 1
+
+    - name: Change file ownership, group and permissions
+      file:
+        path: /var/www/html/laravel-realworld-example-app
+        owner: www-data
+        group: www-data
+        mode: '0775'
+        recurse: yes
+
+    - name: Set up Apache virtualhost
+      template:
+        src: files/laravel.conf.j2
+        dest: /etc/apache2/sites-available/laravel.conf
+      notify: Restart Apache
+
+    - name: Enable new site
+      shell: /usr/sbin/a2ensite laravel.conf
+      notify: Restart Apache
+
+    - name: Disable default Apache site
+      shell: /usr/sbin/a2dissite 000-default.conf
+      notify: Restart Apache
+
+# Enter command to copy bash script probably as a template here
+    - name: Copy the postgresql bash script
+      template:
+        src: files/postgresql.sh.j2
+        dest: /home/ubuntu/postgresql.sh
+        mode: 0775
+        force: yes
+# Run the postgresql script to install and setup postgresql
+    - name: Run the postgresql script
+      command: bash /home/ubuntu/postgresql.sh
+
+# Configure the php.ini
+    - name: Find and replace a text
+      lineinfile:
+        path: /etc/php/8.1/apache2/php.ini
+        regexp: ";extension=pdo_pgsql"
+        line: "extension=pdo_pgsql"
+        state: present
+        backup: yes
+
+    - name: Find and replace a text
+      lineinfile:
+        path: /etc/php/8.1/apache2/php.ini
+        regexp: ";extension=pgsql"
+        line: "extension=pgsql"
+        state: present
+        backup: yes
+
+# Configure the .env file
+    - name: Find and replace a text
+      lineinfile:
+        path: /var/www/html/laravel-realworld-example-app/.env
+        regexp: "DB_DATABASE=laravel-realworld"
+        line: "DB_DATABASE=postgres"
+        state: present
+        backup: yes
+
+    - name: Find and replace a second text
+      lineinfile:
+        path: /var/www/html/laravel-realworld-example-app/.env
+        regexp: "DB_USERNAME=sail"
+        line: "DB_USERNAME=postgres"
+        state: present
+        backup: yes
+
+    - name: Find and replace a third text
+      lineinfile:
+        path: /var/www/html/laravel-realworld-example-app/.env
+        regexp: "DB_PASSWORD=password"
+        line: "DB_PASSWORD=postgres"
+        state: present
+        backup: yes
+
+# Run Migration
+    - name: Seed the app's database
+      command: php artisan migrate --seed
+
+    - name: Change file ownership, group and permissions
+      file:
+        path: /var/www/html/laravel-realworld-example-app/storage/logs/laravel.log
+        owner: www-data
+        group: www-data
+        mode: '0775'
+# configure web.php
+    - name: routes/web.php configuration
+      template:
+        src: files/web.php.j2
+        dest: /var/www/html/laravel-realworld-example-app/routes/web.php
+        force: yes
+
+# UFW configuration
+# Configure domain name biiiiitch
