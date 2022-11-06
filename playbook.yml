@@ -7,7 +7,7 @@
     - php
     - composer
     - git
-
+    - geerlingguy.mysql
   tasks:
     - name: Clone the laravel repository
       git:
@@ -15,7 +15,7 @@
         dest: /var/www/html/laravel-realworld-example-app
         clone: yes
         update: yes
-
+      ignore_errors: yes
     - name: Move into the Laravel Repository
       shell: cd /var/www/html/laravel-realworld-example-app
 
@@ -52,58 +52,21 @@
     - name: Copy the postgresql bash script
       template:
         src: files/postgresql.sh.j2
-        dest: /home/ubuntu/postgresql.sh
+        dest: /home/vagrant/postgresql.sh
         mode: 0775
         force: yes
 # Run the postgresql script to install and setup postgresql
     - name: Run the postgresql script
-      command: bash /home/ubuntu/postgresql.sh
-
-# Configure the php.ini
-    - name: Find and replace a text
-      lineinfile:
-        path: /etc/php/8.1/apache2/php.ini
-        regexp: ";extension=pdo_pgsql"
-        line: "extension=pdo_pgsql"
-        state: present
-        backup: yes
-
-    - name: Find and replace a text
-      lineinfile:
-        path: /etc/php/8.1/apache2/php.ini
-        regexp: ";extension=pgsql"
-        line: "extension=pgsql"
-        state: present
-        backup: yes
-
-# Configure the .env file
-    - name: Find and replace a text
-      lineinfile:
-        path: /var/www/html/laravel-realworld-example-app/.env
-        regexp: "DB_DATABASE=laravel-realworld"
-        line: "DB_DATABASE=postgres"
-        state: present
-        backup: yes
-
-    - name: Find and replace a second text
-      lineinfile:
-        path: /var/www/html/laravel-realworld-example-app/.env
-        regexp: "DB_USERNAME=sail"
-        line: "DB_USERNAME=postgres"
-        state: present
-        backup: yes
-
-    - name: Find and replace a third text
-      lineinfile:
-        path: /var/www/html/laravel-realworld-example-app/.env
-        regexp: "DB_PASSWORD=password"
-        line: "DB_PASSWORD=postgres"
-        state: present
-        backup: yes
+      command: bash /home/vagrant/postgresql.sh
+# new .env file
+    - name: Copy the .env file
+      template:
+        src: files/.env.j2
+        dest: /var/www/html/laravel-realworld-example-app/.env
+        mode: 0775
+        force: yes
 
 # Run Migration
-    - name: Seed the app's database
-      command: php artisan migrate --seed
 
     - name: Change file ownership, group and permissions
       file:
@@ -118,5 +81,38 @@
         dest: /var/www/html/laravel-realworld-example-app/routes/web.php
         force: yes
 
-# UFW configuration
-# Configure domain name biiiiitch
+    - name: Generate app key
+      command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan key:generate"
+      tags: [ 'laravel', 'artisan:key' ]
+
+    - name: Set up app storage link
+      command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan storage:link"
+      tags: [ 'laravel', 'artisan:storage' ]
+
+    - name: Run Migrations + Seeders
+      command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan migrate"
+      tags: [ 'laravel', 'artisan:migrate' ]
+#   prompt: " Do you really wish to run this command? (yes/no) [no]:?"
+#   private: yes
+
+    - name: Run Migrations + Seeders
+      expect:
+        command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan migrate"
+        tags: [ 'laravel', 'artisan:migrate' ]
+        responses:
+          Question:
+            - y
+    - name: [Insert Name]
+          apt:
+            name:
+              - snapd
+        - name: [Insert Name]
+          shell: snap install core
+        - name: [Insert Name]
+          shell: snap refresh core
+        - name: [Insert Name]
+          shell: snap install --classic certbot
+    - name: [Insert Name]
+      shell: ln -s /snap/bin/certbot /usr/bin/certbot
+    - name: [Insert Name]
+      shell: yes | certbot --apache --agree-tos --redirect -m email@domain.com -d domain.com
