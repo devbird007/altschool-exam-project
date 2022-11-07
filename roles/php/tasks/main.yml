@@ -29,5 +29,12 @@
     - php8.1-zip
     - php8.1-mbstring
     - php8.1-curl
-    - php8.1-pgsql
+    - php8.1-mysql
+    - libapache2-mod-php
+    - php8.1-dev
+    - php8.1-bcmath 
+    - php8.1-zip
+    - php-json
+    - php8.1-gd
+    - php8.1-tokenizer
   become: yes

@@ -7,7 +7,7 @@
     - php
     - composer
     - git
-    - geerlingguy.mysql
+
   tasks:
     - name: Clone the laravel repository
       git:
@@ -16,6 +16,7 @@
         clone: yes
         update: yes
       ignore_errors: yes
+
     - name: Move into the Laravel Repository
       shell: cd /var/www/html/laravel-realworld-example-app
 
@@ -47,17 +48,54 @@
     - name: Disable default Apache site
       shell: /usr/sbin/a2dissite 000-default.conf
       notify: Restart Apache
+# Database setup
+    - name: Update apt
+      apt:
+        update_cache: yes
 
+    - name: Install python3
+      apt:
+        name: python3
+        state: present
+
+    - name: Install Pip
+      apt:
+        name: pip
+        state: present
+
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+
+    - name: Install MySQL client
+      apt:
+        name: mysql-client
+        state: present
+
+    - name: Install PyMySQL Library
+      pip:
+        name: PyMySQL
+        state: present
+
+    - name: Start the MySQL service
+      systemd:
+        name: 
+        state: started
+        enabled: yes
+
+    - name: Mod the auth plugin of MYSQL
+      command:
 # Enter command to copy bash script probably as a template here
     - name: Copy the postgresql bash script
       template:
         src: files/postgresql.sh.j2
-        dest: /home/vagrant/postgresql.sh
+        dest: /home/ubuntu/postgresql.sh
         mode: 0775
         force: yes
 # Run the postgresql script to install and setup postgresql
     - name: Run the postgresql script
-      command: bash /home/vagrant/postgresql.sh
+      command: bash /home/ubuntu/postgresql.sh
 # new .env file
     - name: Copy the .env file
       template:
@@ -74,6 +112,7 @@
         owner: www-data
         group: www-data
         mode: '0775'
+      ignore_errors: yes
 # configure web.php
     - name: routes/web.php configuration
       template:
@@ -82,26 +121,48 @@
         force: yes
 
     - name: Generate app key
-      command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan key:generate"
+      command: "/usr/bin/php /var/www/html/laravel-realworld-example-app/artisan key:generate"
       tags: [ 'laravel', 'artisan:key' ]
 
     - name: Set up app storage link
-      command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan storage:link"
+      command: "/usr/bin/php /var/www/html/laravel-realworld-example-app/artisan storage:link"
       tags: [ 'laravel', 'artisan:storage' ]
 
     - name: Run Migrations + Seeders
-      command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan migrate"
+      command: "/usr/bin/php /var/www/html/laravel-realworld-example-app/artisan migrate"
       tags: [ 'laravel', 'artisan:migrate' ]
 #   prompt: " Do you really wish to run this command? (yes/no) [no]:?"
 #   private: yes
 
     - name: Run Migrations + Seeders
       expect:
-        command: "/usr/bin/php {{ remote_www_root }}/{{ app_root_dir }}/artisan migrate"
+        command: "/usr/bin/php /var/www/html/laravel-realworld-example-app/artisan migrate"
         tags: [ 'laravel', 'artisan:migrate' ]
         responses:
           Question:
-            - y
+            - yes
+# Firewall configuration
+    - name: Allow HTTP
+      ufw:
+        rule: allow
+        port: "80"
+        proto: tcp
+    - name: Allow HTTPS
+      ufw:
+        rule: 
+        port: 
+        proto: 
+    - name: Allow SSH
+      ufw:
+        rule: 
+        port: ""
+        proto: 
+    - name: Allow MySQL
+      ufw:
+        rule: 
+        port: ""
+        proto: 
+
 
     - name: SSl config
       apt:
