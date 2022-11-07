@@ -102,17 +102,17 @@
         responses:
           Question:
             - y
-    - name: [Insert Name]
-          apt:
-            name:
-              - snapd
-        - name: [Insert Name]
-          shell: snap install core
-        - name: [Insert Name]
-          shell: snap refresh core
-        - name: [Insert Name]
-          shell: snap install --classic certbot
-    - name: [Insert Name]
+
+    - name: SSl config
+      apt:
+        name: snapd
+    - name: snap install
+      shell: snap install core
+    - name: snap refresh
+      shell: snap refresh core
+    - name: snap certbot
+      shell: snap install --classic certbot
+    - name: configuration
       shell: ln -s /snap/bin/certbot /usr/bin/certbot
-    - name: [Insert Name]
-      shell: yes | certbot --apache --agree-tos --redirect -m email@domain.com -d domain.com
+    - name: more
+      shell: yes | certbot --apache --agree-tos --redirect -m marnuel.et@gmail.com -d devbird.me
