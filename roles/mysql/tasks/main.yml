@@ -1,0 +1,72 @@
+---
+- name: Install MySQL and its dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  loop:
+    - python3
+    - pip
+    - mysql-server
+    - mysql-client
+    - python3-mysqldb
+    - libmysqlclient-dev
+  become: yes
+
+- name: Install PyMySQL Library
+  pip:
+    name: PyMySQL
+    state: present
+
+- name: Start and enable the MySQL service
+  systemd:
+    name: mysql
+    state: started
+    enabled: yes
+# Run mysql_secure_installation
+- name: To be able to change root password
+  mysql_user:
+    name: root
+    password: ubuntu
+    login_user: root
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  when: mysql_root_password is defined and mycnf.stat.exists == false
+
+- name: secure mysqldb
+  become: yes
+  expect:
+    command: mysql_secure_installation
+    responses:
+      'Enter password for user root': 'ubuntu'
+      'VALIDATE PASSWORD COMPONENT can be used to test passwords\r\nand improve security. It checks the strength of password\r\nand allows the users to set only those passwords which are\r\nsecure enough. Would you like to setup VALIDATE PASSWORD component?\r\n\r\nPress y|Y for Yes, any other key for No': 'n'
+      'Set root password': 'n'
+      'Remove anonymous users': 'y'
+      'Disallow root login remotely': 'y'
+      'Remove test database': 'y'
+      'Reload privilege tables now': 'y'
+    timeout: 1
+  register: secure_mysqldb
+
+- name: To see the detailed output
+  debug:
+    var: secure_mysqldb
+
+# Create user and database of mysql
+- name: create the db
+  mysql_db:
+    name: laravel
+    login_user: root
+    login_password: ubuntu
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    state: present
+
+- name: Enable remote login to mysql
+  lineinfile:
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    regexp: '^bind-address'
+    line: 'bind-address = 0.0.0.0'
+    backup: yes
+  notify: Restart mysql
+
+
+
