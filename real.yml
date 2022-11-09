@@ -3,37 +3,37 @@
   hosts: all
   become: yes
   roles:
-#    - git
- #   - apache
-  #  - php
-  #  - composer
-#    - mysql
+    - git
+    - apache
+    - php
+    - composer
+    - mysql
   tasks:
- #   - name: Clone the laravel repository
-  #    git:
-   #     repo: https://github.com/f1amy/laravel-realworld-example-app.git
-    #    dest: /var/www/html/laravel-realworld-example-app
-     #   clone: yes
-      #  update: yes
-      #ignore_errors: yes
+    - name: Clone the laravel repository
+      git:
+        repo: https://github.com/f1amy/laravel-realworld-example-app.git
+        dest: /var/www/html/laravel-realworld-example-app
+        clone: yes
+        update: yes
+      ignore_errors: yes
 
     - name: Move into the Laravel Repository
       shell: cd /var/www/html/laravel-realworld-example-app
 
-   # - name: Install Laravel
-    #  community.general.composer:
-  #      command: create-project
-   #     working_dir: /var/www/html/laravel-realworld-example-app
-  #    environment:
-   #     COMPOSER_ALLOW_SUPERUSER: 1
+    - name: Install Laravel
+      community.general.composer:
+        command: create-project
+        working_dir: /var/www/html/laravel-realworld-example-app
+      environment:
+        COMPOSER_ALLOW_SUPERUSER: 1
 
-#    - name: Change file ownership, group and permissions
- #     file:
-  #      path: /var/www/html/laravel-realworld-example-app
-   #     owner: www-data
-    #    group: www-data
-     #   mode: '0775'
-      #  recurse: yes
+    - name: Change file ownership, group and permissions
+      file:
+        path: /var/www/html/laravel-realworld-example-app
+        owner: www-data
+        group: www-data
+        mode: '0775'
+        recurse: yes
 
     - name: Set up Apache virtualhost
       template:
@@ -57,10 +57,10 @@
         mode: 0775
         force: yes
 # Run the postgresql script to install and setup postgresql
- #    - name: Run the postgresql script
- #     command: bash /home/ubuntu/postgresql.sh
+     - name: Run the postgresql script
+      command: bash /home/ubuntu/postgresql.sh
 
-# new .env file
+#  New .env file
     - name: Copy the .env file
       template:
         src: files/.env.j2
@@ -73,8 +73,8 @@
         src: files/web.php.j2
         dest: /var/www/html/laravel-realworld-example-app/routes/web.php
         force: yes
-# Run it all
 
+# Run it all
     - name: Generate app key
       command: "/usr/bin/php /var/www/html/laravel-realworld-example-app/artisan key:generate"
       tags: [ 'laravel', 'artisan:key' ]
